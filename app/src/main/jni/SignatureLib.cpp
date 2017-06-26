@@ -7,9 +7,6 @@
 #define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
 const char *APP_SIGNATURE = "10645EA8A12BE7A2C04B1F81DF3B4D90";
-const char *CLASS_NAME_NATIVECONTEXT = "lzj/com/jnitest/ContextHolder";
-const char *METHOD_NAME_GET_CONTEXT = "getContext";
-const char *METHOD_SIGNATURE_GETCONTEXT = "()Landroid/content/Context;";
 
 void ByteToHexStr(const char *source, char *dest, int sourceLen) {
     short i;
@@ -69,6 +66,8 @@ jstring ToMd5(JNIEnv *env, jbyteArray source) {
     env->ReleaseByteArrayElements(objArraySign, byte_array_elements, JNI_ABORT);
     // 释放指针使用free
     free(char_result);
+    env->DeleteLocalRef(classMessageDigest);
+    env->DeleteLocalRef(objMessageDigest);
 
     return stringResult;
 }
@@ -115,7 +114,7 @@ jstring loadSignature(JNIEnv *env, jobject context) {
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_ksxkq_checksignatureinnativesample_MainActivity_checkSignature(
+checkSignature(
         JNIEnv *env, jobject context) {
 
     jstring appSignature = loadSignature(env, context); // 当前 App 的签名
@@ -124,9 +123,9 @@ Java_com_ksxkq_checksignatureinnativesample_MainActivity_checkSignature(
     const char *charReleaseSignature = env->GetStringUTFChars(releaseSignature, NULL);
 
 //    LOGI("  start cmp  getSignature");
- //   __android_log_print(ANDROID_LOG_INFO, LOG_TAG, charAppSignature);
+    //   __android_log_print(ANDROID_LOG_INFO, LOG_TAG, charAppSignature);
 //    LOGI("  start cmp  getReleaseSignature");
-  //  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, charAppSignature);
+    //  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, charAppSignature);
 
     jboolean result = JNI_FALSE;
     // 比较是否相等
@@ -142,6 +141,25 @@ Java_com_ksxkq_checksignatureinnativesample_MainActivity_checkSignature(
     return result;
 }
 
+static jobject getApplication(JNIEnv *env) {
+    jobject application = NULL;
+    jclass activity_thread_clz = env->FindClass("android/app/ActivityThread");
+    if (activity_thread_clz != NULL) {
+        jmethodID currentApplication = env->GetStaticMethodID(
+                activity_thread_clz, "currentApplication", "()Landroid/app/Application;");
+        if (currentApplication != NULL) {
+            application = env->CallStaticObjectMethod(activity_thread_clz, currentApplication);
+        } else {
+            //           LOGE("Cannot find method: currentApplication() in ActivityThread.");
+        }
+        env->DeleteLocalRef(activity_thread_clz);
+    } else {
+//        LOGE("Cannot find class: android.app.ActivityThread");
+    }
+
+    return application;
+}
+
 /**
  * 检查加载该so的应用的签名，与预置的签名是否一致
  */
@@ -149,18 +167,19 @@ static jboolean checkSignature(JNIEnv *env) {
     // 为了拿到 Context，需要通过反射，调用静态方法来获取：这里是在 Java 层有一个 ContextHolder 持有 Application 的 Context
 
     // 得到当前 App 的 ContextHolder 类
-    jclass classNativeContextHolder = env->FindClass(CLASS_NAME_NATIVECONTEXT);
-
+    //   jclass myApp = env->FindClass(CLASS_NAME_NATIVECONTEXT);
+    //   env->Ins
+    //  jmethodID midGetContext =  env->GetMethodID(myApp,"getBaseContext",METHOD_SIGNATURE_GETCONTEXT);
     // 得到 getContext 静态方法
-    jmethodID midGetContext = env->GetStaticMethodID(classNativeContextHolder,
-                                                     METHOD_NAME_GET_CONTEXT,
-                                                     METHOD_SIGNATURE_GETCONTEXT);
+//    jmethodID midGetContext = env->GetStaticMethodID(classNativeContextHolder,
+//                                                     METHOD_NAME_GET_CONTEXT,
+//                                                     METHOD_SIGNATURE_GETCONTEXT);
 
     // 调用 getContext 方法得到 Context 对象
-    jobject appContext = env->CallStaticObjectMethod(classNativeContextHolder, midGetContext);
+    jobject appContext = getApplication(env);
 
     if (appContext != NULL) {
-        jboolean signatureValid = Java_com_ksxkq_checksignatureinnativesample_MainActivity_checkSignature(
+        jboolean signatureValid = checkSignature(
                 env, appContext);
         return signatureValid;
     }
@@ -183,7 +202,7 @@ JNI_OnLoad(JavaVM *vm, void *reserved) {
     if (checkSignature(env) != JNI_TRUE) {
 //        LOGI("  checkSignature = false ");
         // 检测不通过，返回 -1 就会使 App crash
-       return -1;
+        return -1;
     }
 
     return JNI_VERSION_1_6;
