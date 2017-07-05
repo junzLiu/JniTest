@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
-//        ((TextView)findViewById(R.id.text)).setText(getSmStr());
+//        ((TextView)findViewById(R.id.text)).setText(loadSignature(this.getApplicationContext()));
 //        ((TextView)findViewById(R.id.text)).setText(JniBridge.getSignativeStr(this));
 
     }
@@ -56,6 +56,8 @@ public class MainActivity extends AppCompatActivity {
     static {
         System.loadLibrary("SignatureLib");
     }
+
+//    public native String loadSignature(Context context);
 
 //    public native String getSmStr();
 //

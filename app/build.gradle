@@ -22,6 +22,8 @@ model {
 //        moduleName "task-lib"
             moduleName "SignatureLib"
 
+            ldLibs.add("log")
+
         }
     }
 }

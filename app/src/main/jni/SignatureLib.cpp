@@ -2,6 +2,7 @@
 #include <jni.h>
 #include <string.h>
 #include <android/log.h>
+#include <malloc.h>
 
 #define  LOG_TAG    "native-dev"
 #define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -72,7 +73,8 @@ jstring ToMd5(JNIEnv *env, jbyteArray source) {
     return stringResult;
 }
 
-jstring loadSignature(JNIEnv *env, jobject context) {
+JNIEXPORT jstring JNICALL
+Java_lzj_com_jnitest_MainActivity_loadSignature(JNIEnv *env, jobject context) {
     // 获得Context类
     jclass cls = env->GetObjectClass(context);
     // 得到getPackageManager方法的ID
@@ -113,17 +115,18 @@ jstring loadSignature(JNIEnv *env, jobject context) {
     return ToMd5(env, signatureByteArray);
 }
 
-extern "C" JNIEXPORT jboolean JNICALL
-checkSignature(
+jboolean checkSignature(
         JNIEnv *env, jobject context) {
 
-    jstring appSignature = loadSignature(env, context); // 当前 App 的签名
+    jstring appSignature = Java_lzj_com_jnitest_MainActivity_loadSignature(env,
+                                                                           context); // 当前 App 的签名
+
     jstring releaseSignature = env->NewStringUTF(APP_SIGNATURE); // 发布时候的签名
     const char *charAppSignature = env->GetStringUTFChars(appSignature, NULL);
     const char *charReleaseSignature = env->GetStringUTFChars(releaseSignature, NULL);
 
 //    LOGI("  start cmp  getSignature");
-    //   __android_log_print(ANDROID_LOG_INFO, LOG_TAG, charAppSignature);
+       __android_log_print(ANDROID_LOG_INFO, LOG_TAG, charAppSignature);
 //    LOGI("  start cmp  getReleaseSignature");
     //  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, charAppSignature);
 
@@ -164,16 +167,6 @@ static jobject getApplication(JNIEnv *env) {
  * 检查加载该so的应用的签名，与预置的签名是否一致
  */
 static jboolean checkSignature(JNIEnv *env) {
-    // 为了拿到 Context，需要通过反射，调用静态方法来获取：这里是在 Java 层有一个 ContextHolder 持有 Application 的 Context
-
-    // 得到当前 App 的 ContextHolder 类
-    //   jclass myApp = env->FindClass(CLASS_NAME_NATIVECONTEXT);
-    //   env->Ins
-    //  jmethodID midGetContext =  env->GetMethodID(myApp,"getBaseContext",METHOD_SIGNATURE_GETCONTEXT);
-    // 得到 getContext 静态方法
-//    jmethodID midGetContext = env->GetStaticMethodID(classNativeContextHolder,
-//                                                     METHOD_NAME_GET_CONTEXT,
-//                                                     METHOD_SIGNATURE_GETCONTEXT);
 
     // 调用 getContext 方法得到 Context 对象
     jobject appContext = getApplication(env);
