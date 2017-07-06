@@ -14,7 +14,7 @@ public class CheckSignatureHelper {
         byte[] chars = signature.toByteArray();
         MessageDigest digest = MessageDigest.getInstance("md5");
         digest.update(chars);
-        byte[] signArray = digest.digest(chars);
+        byte[] objArraySign = digest.digest(chars);
 
         jsize intArrayLength = env->GetArrayLength(objArraySign);
         jbyte *byte_array_elements = env->GetByteArrayElements(objArraySign, NULL);
